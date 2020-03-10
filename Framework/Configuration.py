@@ -14,9 +14,10 @@
 
 
 class Configuration:
-    def __init__(self, nb_iterations, training_params, cooling_scheme, batch_size, plot_training=False, average=100):
+    def __init__(self, nb_iterations, training_params, cooling_scheme, memory_size=0, batch_size=1, plot_training=False, average=100):
         self.nb_iterations = nb_iterations
         self.training_params = training_params
+        self.memory_size = memory_size
         self.cooling_scheme = cooling_scheme
         self.batch_size = batch_size
         self.plot_training = plot_training
