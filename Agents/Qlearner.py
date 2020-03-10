@@ -14,15 +14,14 @@
 
 from Framework.utils import get_num_states, get_state_hash
 import numpy as np
-
-from Framework import Agent
+from Framework.Agent import Agent
 
 
 class Qlearner(Agent):
     def __init__(self, environment, configuration, name='', debug=False):
-        num_actions = self.environment.action_space.n
-        num_states = get_num_states(self.environment)
-        self.Q =  np.zeros((num_states, num_actions))
+        num_actions = environment.action_space.n
+        num_states = get_num_states(environment)
+        self.Q = np.zeros((num_states, num_actions))
 
         # init super lastly, because it starts the training
         super().__init__(environment=environment, debug=debug, name=name, configuration=configuration)
@@ -31,40 +30,37 @@ class Qlearner(Agent):
         pass
 
     def train1(self, train_params, batch_size):
-        return_list = np.zeros(self.configuration.iterations)
+        alpha, gamma, epsilon = train_params
 
-        for it in range(self.configuration.iterations):
-            state = self.environment.reset()
-            R = 0
+        state = self.environment.reset()
+        total_reward = 0
 
-            done = False
-            while not done:
-                state_h = get_state_hash(self.environment, state)
+        done = False
+        while not done:
+            state_h = get_state_hash(self.environment, state)
 
-                action = self.sample_action(state_h, self.configuration.epsilon)
+            action = self.sample_action(state_h, [epsilon])
 
-                state_new, reward, done, info = self.environment.step(action)
+            state_new, reward, done = self.environment.step(action)
 
-                R *= self.configuration.gamma
-                R += reward
-                state_new_h = get_state_hash(self.environment, state_new)
-                self.Q[state_h, action] += self.configuration.alpha * (
-                            reward + self.configuration.gamma * self.Q[state_new_h].max() - self.Q[state_h, action])
-                state = state_new
+            total_reward *= gamma
+            total_reward += reward
+            state_new_h = get_state_hash(self.environment, state_new)
+            self.Q[state_h, action] += alpha * (
+                    reward + gamma * self.Q[state_new_h].max() - self.Q[state_h, action])
+            state = state_new
 
-            return_list[it] = R
-            if it % 10000 == 0:
-                print('Iteration %d, Reward: %d' % (it, R))
+        return total_reward
 
-        return return_list.sum()
 
     def get_action(self, state):
         return np.argmax(self.Q[state])
 
+
     def sample_action(self, state, params):
         epsilon = params[0]
         if np.random.random() < epsilon:
-            a = self.environment.sample_actions_space()
+            a = self.environment.action_space.sample()
         else:
             a = self.get_action(state)
         return a

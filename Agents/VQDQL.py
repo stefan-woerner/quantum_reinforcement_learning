@@ -63,7 +63,7 @@ class VQDQL(Agent):
                 if i == '1':
                     qc.x(q[j])
 
-            theta = theta.reshape((self.nb_qbits, 3))
+            #theta = theta.reshape((self.nb_qbits, 3))
 
             count = 0
             for rep in range(self.nb_variational_circuits):
