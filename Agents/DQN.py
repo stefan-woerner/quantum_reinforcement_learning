@@ -67,6 +67,7 @@ class DQN(Agent):
             self.D.pop(0)
             self.D.append((to_categorical(state, num_classes=self.num_states), a, r,
                            to_categorical(new_state, num_classes=self.num_states), done))
+            state = new_state
 
         # create minibatch for training
         mB_ind = np.random.choice(range(self.memory_size), size=batch_size, replace=False)
@@ -80,10 +81,11 @@ class DQN(Agent):
 
 
         # train
+        print('train it:', self.train_counter)
         self.model.train_on_batch(x, y)
 
         # replace target model
-        if self.train_counter % self.configuration.target_replacement:
+        if self.train_counter % self.configuration.target_replacement == 0:
             self.target_model = clone_model(self.model)
 
         self.train_counter = self.train_counter + 1

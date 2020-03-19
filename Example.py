@@ -45,30 +45,28 @@ confQ = Configuration(nb_iterations=10000, training_params=training_params, cool
 # NN model for DQN
 num_states = get_num_states(env)
 model = Sequential()
-model.add(Dense(num_states, input_shape=(16, )))
-model.add(Activation('relu'))
-model.add(Dense(num_states))
-model.add(Activation('relu'))
-model.add(Dense(env.action_space.n))
-model.add(Activation('linear'))
+model.add(Dense(num_states, input_shape=(16, ), activation='relu'))
+model.add(Dense(num_states, activation='relu'))
+model.add(Dense(env.action_space.n, activation='linear'))
 print(model.summary())
 
-confDQN = Configuration(nb_iterations=1000, training_params=training_params[1:], cooling_scheme=cooling_schemes[1:], batch_size=30, plot_training=True,memory_size=500,
+iterations = 100000
+confDQN = Configuration(nb_iterations=iterations, training_params=training_params[1:], cooling_scheme=[lambda x, iter: x, lambda x,iter: 1-(iter/iterations)], batch_size=30, plot_training=True,memory_size=500,
                         average=int(batch_size/100))
 confDQN.model = model
-confDQN.target_replacement = 1e1
+confDQN.target_replacement = 1e10
 
 # Example to train two VQDQL agents
 
-agent = VQDQL(env, memory_size= 100, nb_variational_circuits=1, configuration=confVQD)
-agent1 = Qlearner(env, debug=True, configuration=confQ)
-#agent2 = DQN(env, debug=True, configuration=confDQN)
+#agent = VQDQL(env, memory_size= 100, nb_variational_circuits=1, configuration=confVQD)
+#agent1 = Qlearner(env, debug=True, configuration=confQ)
+agent2 = DQN(env, debug=True, configuration=confDQN)
 
-#agent2.evaluate(100)
+agent2.evaluate(100)
 
 # Compare the performance
-evaluator = Evaluator([agent, agent1], 5)
-rewards = evaluator.evaluate(plot_results=True, average=2)
+#evaluator = Evaluator([agent, agent1], 5)
+#rewards = evaluator.evaluate(plot_results=True, average=2)
 
 
-
+pin

@@ -120,6 +120,7 @@ class VQDQL(Agent):
             total_reward += r
             self.D.pop(0)
             self.D.append((s, a, r, s1, done))
+            s = s1
         mB_ind = np.random.choice(range(self.memory_size), size=batch_size, replace=False)
         mB = np.array(self.D)[mB_ind]
         t = []
