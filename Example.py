@@ -67,6 +67,3 @@ agent2.evaluate(100)
 # Compare the performance
 #evaluator = Evaluator([agent, agent1], 5)
 #rewards = evaluator.evaluate(plot_results=True, average=2)
-
-
-pin
