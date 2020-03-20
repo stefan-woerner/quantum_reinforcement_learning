@@ -19,6 +19,7 @@ from keras.models import clone_model
 from keras.utils import to_categorical
 import keras.backend as K
 
+# Hallo Max
 
 class DQN(Agent):
     def __init__(self, environment, configuration, name='', debug=False):
