@@ -1,7 +1,7 @@
 from gym.envs.registration import register
 
 register(
-	id = 'FL-v0',
+	id = 'FL-v1',
 	entry_point = 'Environments.FL.envs:FL'
 	)
 

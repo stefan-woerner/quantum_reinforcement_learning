@@ -67,6 +67,8 @@ class FL(discrete.DiscreteEnv):
         self.desc = desc = np.asarray(desc, dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_range = (0, 1)
+        self.max_episode_steps = 200
+        self.num_steps = 0
 
         nA = 4
         nS = nrow * ncol
@@ -128,12 +130,16 @@ class FL(discrete.DiscreteEnv):
     def reset(self):
         self.s = categorical_sample(self.isd, self.np_random)
         self.lastaction = None
+        self.num_steps = 0
         return self.s
 
     def step(self, a):
         transitions = self.P[self.s][a]
         i = categorical_sample([t[0] for t in transitions], self.np_random)
         p, s, r, d = transitions[i]
+        self.num_steps += 1
+        if self.num_steps == self.max_episode_steps:
+            d = True
         self.s = s
         self.lastaction = a
         if self.desc[int(s / self.ncol)][s % self.ncol] in b'H':
