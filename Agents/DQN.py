@@ -15,18 +15,21 @@
 from Framework.utils import get_num_states, get_state_hash
 import numpy as np
 from Framework.Agent import Agent
+#TODO: tf.keras....
 from keras.models import clone_model
 from keras.utils import to_categorical
+from keras.optimizers import Adam
 import keras.backend as K
 
 # Hallo Max
 
 class DQN(Agent):
-    def __init__(self, environment, configuration, name='', debug=False):
+    def __init__(self, environment, configuration, name='', verbosity_level = 10, debug=False):
         self.D = []  # Memory
         self.num_states = get_num_states(environment)
         self.model = configuration.model
-        self.model.compile(loss='mean_squared_error', optimizer='sgd')
+        lr = configuration.training_params[0]
+        self.model.compile(loss='mean_squared_error', optimizer=Adam(lr)) #TODO : optimizer in Configuration
         self.target_model = clone_model(self.model)
         self.memory_size = configuration.memory_size
 
@@ -35,7 +38,7 @@ class DQN(Agent):
         self.init_memory(environment)
 
         # init super lastly, because it starts the training
-        super().__init__(environment=environment, debug=debug, name=name, configuration=configuration)
+        super().__init__(environment=environment, verbosity_level= verbosity_level, debug=debug, name=name, configuration=configuration)
 
     def init_memory(self, environment):
         while len(self.D) < self.memory_size:
@@ -53,8 +56,8 @@ class DQN(Agent):
     def loss_function(self, theta, t):
         return
 
-    def train1(self, train_params, batch_size):
-        gamma, epsilon = train_params
+    def train1(self, train_params, batch_size,verb = True):
+        gamma, epsilon = train_params[1:]
 
         state = self.environment.reset()
         total_reward = 0
@@ -71,19 +74,24 @@ class DQN(Agent):
             state = new_state
 
         # create minibatch for training
-        mB_ind = np.random.choice(range(self.memory_size), size=batch_size, replace=False)
-        mB = np.array(self.D)[mB_ind]
-        y = np.zeros((batch_size, self.environment.action_space.n))
-        x = np.zeros((batch_size, self.num_states))
-        for j in range(batch_size):
-            x[j] = mB[j][0]
-            y[j] = self.model.predict(x[j].reshape(1, self.num_states))[0]
-            y[j][mB[j][1]] = mB[j][2] * mB[j][-1] or mB[j][2] + gamma * max(self.target_model.predict(mB[j][3].reshape(1, self.num_states))[0])
+        for _ in range(5):
+            mB_ind = np.random.choice(range(self.memory_size), size=batch_size, replace=True)
+            mB = np.array(self.D)[mB_ind]
+            y = np.zeros((batch_size, self.environment.action_space.n))
+            x = np.zeros((batch_size, self.num_states))
+            for j in range(batch_size):
+                x[j] = mB[j][0]
+                y[j] = self.model.predict(x[j].reshape(1, self.num_states))[0]
+                y[j][mB[j][1]] = mB[j][2] * mB[j][-1] or mB[j][2] + gamma * max(self.target_model.predict(mB[j][3].reshape(1, self.num_states))[0])
 
 
         # train
-        print('train it:', self.train_counter)
-        self.model.train_on_batch(x, y)
+
+
+            batch_loss = self.model.train_on_batch(x, y)
+
+        if verb:
+            print('train it:', (self.train_counter+1), ' Return: ', total_reward, ' Loss: ', batch_loss)
 
         # replace target model
         if self.train_counter % self.configuration.target_replacement == 0:
