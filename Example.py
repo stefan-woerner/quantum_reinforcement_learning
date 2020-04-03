@@ -16,13 +16,14 @@ from Agents.VQDQL import VQDQL
 from Agents.Qlearner import Qlearner
 from Agents.DQN import DQN
 from Framework.Configuration import Configuration
+from Framework.utils import plot
 from Framework.Evaluator import Evaluator
 from Framework.utils import get_num_states
 import gym
 import Environments.FL
-from keras.models import Sequential
-from keras.layers import Dense, Activation
-from keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation
+from tensorflow.keras.optimizers import Adam
 
 # Setup the environment containing
 env = gym.make('FL-v0')
@@ -33,13 +34,13 @@ nb_iterations = 5
 #alpha, gamma, epsilon
 training_params =[.1, .99, .9]
 #alpha, gamma, epsilon
-cooling_schemes = [lambda x, iter: x, lambda x, iter: x, lambda x,iter: x*(0.99**iter)]
+cooling_schemes = [lambda x, iter: x, lambda x, iter: x, lambda x,iter: x*(0.9999**iter)]
 
-# Instantiate the trainer, conta
+# Instantiate the trainer
 confVQD = Configuration(nb_iterations=nb_iterations, training_params=training_params, cooling_scheme=cooling_schemes,
                         batch_size=batch_size, plot_training=True, average=int(batch_size/5))
 
-confQ = Configuration(nb_iterations=10000, training_params=training_params, cooling_scheme=cooling_schemes,
+confQ = Configuration(nb_iterations=500, training_params=training_params, cooling_scheme=cooling_schemes,
                         batch_size=1, plot_training=True, average=int(batch_size/100))
 
 # NN model for DQN
@@ -59,10 +60,12 @@ confDQN.target_replacement = 1e10
 # Example to train two VQDQL agents
 
 #agent = VQDQL(env, memory_size= 100, nb_variational_circuits=1, configuration=confVQD)
-#agent1 = Qlearner(env, debug=True, configuration=confQ)
-agent2 = DQN(env, debug=True, configuration=confDQN)
+agent1 = Qlearner(env, debug=True, configuration=confQ)
+#agent2 = DQN(env, debug=True, configuration=confDQN)
 
-agent2.evaluate(100)
+rewards_eval_agent1 = agent1.evaluate(100)
+plot(total_rewards=rewards_eval_agent1)
+
 
 # Compare the performance
 #evaluator = Evaluator([agent, agent1], 5)
