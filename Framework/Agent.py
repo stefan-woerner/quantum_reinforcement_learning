@@ -51,6 +51,7 @@ class Agent:
                 a = self.get_action(s)
                 s1, r, done = self.environment.step(a)
                 total_reward += r
+                s = s1
             total_rewards[i] = total_reward
         return total_rewards
 
