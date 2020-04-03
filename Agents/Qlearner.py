@@ -59,6 +59,7 @@ class Qlearner(Agent):
 
     def sample_action(self, state, params):
         epsilon = params[0]
+        print(epsilon)
         if np.random.random() < epsilon:
             a = self.environment.action_space.sample()
         else:
