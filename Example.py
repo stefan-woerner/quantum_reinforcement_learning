@@ -24,13 +24,15 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.optimizers import Adam
 from datetime import datetime
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Setup the environment containing
 env_name = 'FL-v1'
 env = gym.make(env_name)
 
 # Set the training parameters
-batch_size = 10
+batch_size = 100
 nb_iterations = 5
 #alpha, gamma, epsilon
 training_params =[.1, .99, .9]
@@ -48,16 +50,19 @@ confQ = Configuration(nb_iterations=10000, training_params=training_params, cool
 num_states = get_num_states(env)
 model = Sequential()
 model.add(Dense(8, input_shape=(16, ), activation='tanh'))
-#model.add(Dense(8, activation='tanh'))
+
 model.add(Dense(env.action_space.n, activation='linear'))
 print(model.summary())
 
-iterations = 10000
-confDQN = Configuration(nb_iterations=iterations, training_params=training_params[1:], cooling_scheme=[lambda x, iter: x, lambda x,iter: 1-(iter/iterations)], batch_size=100, plot_training=True,memory_size=300,
+iterations = 200000
+confDQN = Configuration(nb_iterations=iterations, training_params=training_params,
+                        cooling_scheme=[lambda x, iter: x, lambda x, iter: x,
+                                        lambda x, iter: x], batch_size=batch_size,
+                        plot_training=True, memory_size=300,
                         average=int(batch_size/100))
 # TODO: average should depend on iterations not batch_size??-- discuss
 confDQN.model = model
-confDQN.target_replacement = 1e10
+confDQN.target_replacement = 10
 
 # Example to train two VQDQL agents
 
@@ -65,10 +70,16 @@ confDQN.target_replacement = 1e10
 #agent1 = Qlearner(env, debug=True, configuration=confQ)
 
 start = datetime.now()
-agent2 = DQN(env, debug=True, configuration=confDQN, verbosity_level = 100)
-print(datetime.now()-start)
+agent2 = DQN(env, debug=True, configuration=confDQN, verbosity_level=1000)
+plt.plot(agent2.returns)
+plt.show()
 
-agent2.evaluate(100)
+total_rewards = agent2.evaluate(1)
+plt.plot(total_rewards)
+plt.show()
+print(np.mean(total_rewards))
+
+
 
 # Compare the performance
 #evaluator = Evaluator([agent, agent1], 5)
