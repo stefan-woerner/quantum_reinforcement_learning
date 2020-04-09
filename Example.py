@@ -12,14 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-#from Agents.VQDQL import VQDQL
+from Agents.VQDQL import VQDQL
 from Agents.Qlearner import Qlearner
 from Agents.DQN import DQN
 from Framework.Configuration import Configuration
+from Framework.utils import plot
 from Framework.Evaluator import Evaluator
 from Framework.utils import get_num_states
 import gym
 import Environments.FL
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation
+from tensorflow.keras.optimizers import Adam
+import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.optimizers import Adam
@@ -37,13 +42,13 @@ nb_iterations = 5
 #alpha, gamma, epsilon
 training_params =[.1, .99, .9]
 #alpha, gamma, epsilon
-cooling_schemes = [lambda x, iter: x, lambda x, iter: x, lambda x,iter: x*(0.99**iter)]
+cooling_schemes = [lambda x, iter: x, lambda x, iter: x, lambda x,iter: x*(0.9999**iter)]
 
-# Instantiate the trainer, conta
+# Instantiate the trainer
 confVQD = Configuration(nb_iterations=nb_iterations, training_params=training_params, cooling_scheme=cooling_schemes,
                         batch_size=batch_size, plot_training=True, average=int(batch_size/5))
 
-confQ = Configuration(nb_iterations=10000, training_params=training_params, cooling_scheme=cooling_schemes,
+confQ = Configuration(nb_iterations=500, training_params=training_params, cooling_scheme=cooling_schemes,
                         batch_size=1, plot_training=True, average=int(batch_size/100))
 
 # NN model for DQN
@@ -68,11 +73,7 @@ confDQN.target_replacement = 10
 
 #agent = VQDQL(env, memory_size= 100, nb_variational_circuits=1, configuration=confVQD)
 #agent1 = Qlearner(env, debug=True, configuration=confQ)
-
-start = datetime.now()
-agent2 = DQN(env, debug=True, configuration=confDQN, verbosity_level=1000)
-plt.plot(agent2.returns)
-plt.show()
+agent2 = DQN(env, debug=True, configuration=confDQN)
 
 total_rewards = agent2.evaluate(1)
 plt.plot(total_rewards)
