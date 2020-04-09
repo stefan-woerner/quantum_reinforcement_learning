@@ -17,13 +17,15 @@ from Framework.utils import plot
 import numpy as np
 
 class Agent:
-    def __init__(self, environment, configuration, name, debug=False):
+    def __init__(self, environment, configuration, name, verbosity_level = 10, debug=False):
         self.environment = environment
         self.debug = debug
         self.name = name
+        self.verbosity_level = verbosity_level
         self.configuration = configuration
         if self.configuration:
-            self.train()
+            self.returns = self.train()
+
 
     @abstractmethod
     def loss_function(self, theta, t):
@@ -38,7 +40,7 @@ class Agent:
         pass
 
     @abstractmethod
-    def train1(self, train_params, batch_size):
+    def train1(self, train_params, batch_size,verb):
         pass
 
     def evaluate(self, nb_iterations):
@@ -51,6 +53,7 @@ class Agent:
                 a = self.get_action(s)
                 s1, r, done = self.environment.step(a)
                 total_reward += r
+                s=s1.copy()
             total_rewards[i] = total_reward
         return total_rewards
 
@@ -61,7 +64,7 @@ class Agent:
         for it in range(self.configuration.nb_iterations):
             for i in range(len(params)):
                 params[i] = self.configuration.cooling_scheme[i](params[i], it)
-            total_rewards[it] = self.train1(params, self.configuration.batch_size)
+            total_rewards[it] = self.train1(params, self.configuration.batch_size,((it+1) %self.verbosity_level == 0))
 
         if self.configuration.plot_training: plot(total_rewards=total_rewards, average=self.configuration.average)
         return total_rewards

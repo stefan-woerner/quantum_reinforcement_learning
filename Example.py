@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from Agents.VQDQL import VQDQL
+#from Agents.VQDQL import VQDQL
 from Agents.Qlearner import Qlearner
 from Agents.DQN import DQN
 from Framework.Configuration import Configuration
@@ -23,9 +23,11 @@ import Environments.FL
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.optimizers import Adam
+from datetime import datetime
 
 # Setup the environment containing
-env = gym.make('FL-v0')
+env_name = 'FL-v1'
+env = gym.make(env_name)
 
 # Set the training parameters
 batch_size = 10
@@ -45,14 +47,15 @@ confQ = Configuration(nb_iterations=10000, training_params=training_params, cool
 # NN model for DQN
 num_states = get_num_states(env)
 model = Sequential()
-model.add(Dense(num_states, input_shape=(16, ), activation='relu'))
-model.add(Dense(num_states, activation='relu'))
+model.add(Dense(8, input_shape=(16, ), activation='tanh'))
+#model.add(Dense(8, activation='tanh'))
 model.add(Dense(env.action_space.n, activation='linear'))
 print(model.summary())
 
-iterations = 100000
-confDQN = Configuration(nb_iterations=iterations, training_params=training_params[1:], cooling_scheme=[lambda x, iter: x, lambda x,iter: 1-(iter/iterations)], batch_size=30, plot_training=True,memory_size=500,
+iterations = 10000
+confDQN = Configuration(nb_iterations=iterations, training_params=training_params[1:], cooling_scheme=[lambda x, iter: x, lambda x,iter: 1-(iter/iterations)], batch_size=100, plot_training=True,memory_size=300,
                         average=int(batch_size/100))
+# TODO: average should depend on iterations not batch_size??-- discuss
 confDQN.model = model
 confDQN.target_replacement = 1e10
 
@@ -60,7 +63,10 @@ confDQN.target_replacement = 1e10
 
 #agent = VQDQL(env, memory_size= 100, nb_variational_circuits=1, configuration=confVQD)
 #agent1 = Qlearner(env, debug=True, configuration=confQ)
-agent2 = DQN(env, debug=True, configuration=confDQN)
+
+start = datetime.now()
+agent2 = DQN(env, debug=True, configuration=confDQN, verbosity_level = 100)
+print(datetime.now()-start)
 
 agent2.evaluate(100)
 
