@@ -74,10 +74,9 @@ class DQN(Agent):
             self.D.pop(0)
             self.D.append((to_categorical(state, num_classes=self.num_states), a, r,
                            to_categorical(new_state, num_classes=self.num_states), done))
-            state = new_state
 
-        # create minibatch for training
-        for _ in range(1):
+            # create minibatch for training
+            # for _ in range(1):
             mB_ind = np.random.choice(range(self.memory_size), size=batch_size, replace=True)
             mB = np.array(self.D)[mB_ind]
             y = np.zeros((batch_size, self.environment.action_space.n))
@@ -93,14 +92,18 @@ class DQN(Agent):
             batch_loss = self.model.train_on_batch(x, y)
             batch_losses.append(batch_loss)
 
-        if verb:
-            print('train it:', (self.train_counter+1), ' Return: ', total_reward, ' Loss: ', np.mean(batch_losses))
+            if verb:
+                print('train it:', (self.train_counter+1), ' Return: ', total_reward, ' Loss: ', np.mean(batch_losses))
 
-        # replace target model
-        if self.train_counter % self.configuration.target_replacement == 0:
-            self.target_model.set_weights(self.model.get_weights())
+            # replace target model
+            if self.train_counter % self.configuration.target_replacement == 0:
+                self.target_model.set_weights(self.model.get_weights())
 
-        self.train_counter = self.train_counter + 1
+            self.train_counter = self.train_counter + 1
+
+            # update state
+            state = new_state
+
         return total_reward
 
     def get_action(self, state):
