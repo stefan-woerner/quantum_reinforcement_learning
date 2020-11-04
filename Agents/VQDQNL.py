@@ -18,11 +18,12 @@ import numpy as np
 from qiskit.aqua.components.optimizers import ADAM
 from qiskit import *
 from datetime import datetime
+import copy
 import sympy as sy
 from sympy.physics.quantum import TensorProduct
 
 
-class VQDQL(Agent):
+class VQDQNL(Agent):
 
     def __init__(self, environment, configuration, name='', verbosity_level = 10, debug=False):
         self.D = []  # Memory
@@ -38,21 +39,16 @@ class VQDQL(Agent):
         self.nb_circuit_params = 1
         self.nb_qbits = int(np.max([num_actions, np.log2(num_states)]))
         self.theta = np.array(
-            [np.pi * np.random.random(self.nb_circuit_params) for j in range(self.nb_qbits * self.nb_variational_circuits)]).flatten()
+            [np.random.random(self.nb_circuit_params) for j in range(self.nb_qbits * self.nb_variational_circuits)]).flatten()
 
-        self.target_theta = self.theta.copy()
+        self.target_theta = copy.deepcopy(self.theta.copy())
 
-        #start = datetime.now()
-        self.mask = self.get_mask()
-        #self.symbolic_circuit = self.get_symbolic_circuit()
-        #self.symbolic_difs = self.get_symbolic_diffs()
-        #print('Symbolic circuit: ', datetime.now()-start)
 
         self.init_memory(environment)
         self.loss_mem = []
 
         # init super lastly, because it starts the training
-        super().__init__(environment=environment, verbosity_level=verbosity_level, debug=debug, name=name, configuration=configuration)
+        super().__init__(environment=environment, debug=debug, name=name, configuration=configuration)
 
     # def get_symbolic_diffs(self):
     #     return [sy.lambdify(self.symbolic_theta, sy.diff(self.symbolic_circuit, i), 'numpy') for i in self.symbolic_theta]
@@ -121,6 +117,12 @@ class VQDQL(Agent):
             mask[i * self.nb_qbits:(i + 1) * self.nb_qbits, i] = 1
         return mask
 
+    def get_exp(self, result_list, index):
+        res = np.zeros(self.nb_qbits)
+        for key in result_list.get_counts(index):
+            spl = -1 * np.array([int(i) or -1 for i in key])
+            res = res + spl * (result_list.get_counts(index)[key] / result_list.results[index].shots)
+
     def get_qvalues(self, s_list, theta, shots=1024):
         qc_list = []
         for s in s_list:
@@ -132,7 +134,7 @@ class VQDQL(Agent):
             d = np.binary_repr(int(s), self.nb_qbits)
             for j, i in enumerate(d):
                 qc.u3(int(i)*np.pi, -np.pi/2, np.pi/2, q[j]) # Rx = U3 with lambda = pi/2, phi=-pi/2
-                qc.u1(int(i)*np.pi, q[j]) # Rz = U1
+ #               qc.u1(int(i)*np.pi, q[j]) # Rz = U1
 
             # Variational circuits
             count = 0
@@ -144,12 +146,12 @@ class VQDQL(Agent):
                     qc.u3(theta[count], 0, 0, q[i])
                     count = count + self.nb_circuit_params
 
-#            qc.measure(q, c)
+            qc.measure(q, c)
 
             qc_list.append(qc)
 
-        backend_sim = Aer.get_backend('statevector_simulator')
-        #backend_sim = Aer.get_backend('qasm_simulator')
+        #backend_sim = Aer.get_backend('statevector_simulator')
+        backend_sim = Aer.get_backend('qasm_simulator')
         qob = assemble(qc_list, backend_sim)#, shots=10)
 
         # result_list = execute(qc_list, backend_sim, shots=shots).result()
@@ -158,47 +160,10 @@ class VQDQL(Agent):
         expect_list = []
 
         for k in range(len(qc_list)):
-            probs = (result_list.get_statevector(k).conjugate().T*result_list.get_statevector(k)).real
-            actions = probs.T.dot(self.mask)
-            expect_list.append(actions)
-
-        # for each state compute the action probabilities by
-#        for k in range(len(qc_list)):
-#            actions = np.zeros(self.nb_qbits)
-#            for i, j in result_list.get_counts(k).items():
-#                # convert result to array over actions and scale by count
-#                actions += (np.fromstring(i, dtype=np.int8)-48)*j
-#            # normalize over actions
-#            actions /= actions.sum()
-#            expect_list.append(actions)
-        #expect_list = [np.int(list(result_list.get_counts(i))[0] ,2) % 4 for i in range(len(qc_list))]#:
-        #    res = result_list.get_counts(i)
-        #    action = np.int(list(res.keys())[0], 2) % self.nb_qbits
-        #    expect_list.append(action)
-
-#        for result in result_list.results:
-#            proba = abs(np.array(result.data.statevector)) ** 2
-#
-#            expect = np.zeros(self.nb_qbits)#
-#
-#            for c in range(len(proba)):
-#                cbin = np.binary_repr(int(c), self.nb_qbits)
-#
-#                for n in range(self.nb_qbits):
-#                    if cbin[n] == '1':
-#                        expect[n] += proba[c]
-#
-#            expect_list.append(expect)
+            res = self.get_exp(result_list, k)
+            expect_list.append(res)
 
         return expect_list
-
-    # def gradient(self, theta, t):
-    #     grad = np.zeros(self.symbolic_theta.shape)
-    #     Qs = self.get_qvalues(t[:, 1], theta)
-    #
-    #     for i in range(len(t)):
-    #         grad += (t[i,0] - Qs[i][int(t[i,2])]) * np.abs(t[i,1].dot(np.array([i(*theta) for i in self.symbolic_difs])[:,:,int(t[i,2])].T))**2 # TODO
-    #     return grad
 
     def loss(self, theta, t):
         su = 0
@@ -210,7 +175,7 @@ class VQDQL(Agent):
                 su += .5 * diff**2
             else:
                 su += diff - .5
-        return su / len(t)
+        return su
 
     def train1(self, train_params, batch_size, verb=True):
         alpha, gamma, epsilon = train_params
@@ -236,8 +201,6 @@ class VQDQL(Agent):
             t = []
             for j in range(batch_size):
                 y_j = mB[j][2] * mB[j][-1] or mB[j][2] + gamma * max(self.get_qvalues([mB[j][3]], self.target_theta)[0])
-                #y_j /= 2
-                #y_j += 0.5
                 t.append([y_j, mB[j][0], mB[j][1]])
 
             t = np.array(t)
@@ -252,7 +215,7 @@ class VQDQL(Agent):
                 print(datetime.now() - start)
 
             if self.train_counter % self.configuration.target_replacement == 0:
-                self.target_theta = self.theta.copy()
+                self.target_theta = copy.deepcopy(self.theta.copy())
             self.train_counter = self.train_counter + 1
 
             # update state
