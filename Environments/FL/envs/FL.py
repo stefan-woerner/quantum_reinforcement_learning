@@ -67,7 +67,7 @@ class FL(discrete.DiscreteEnv):
         self.desc = desc = np.asarray(desc, dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_range = (0, 1)
-        self.max_episode_steps = 200
+        self.max_episode_steps = 100
         self.num_steps = 0
 
         nA = 4
@@ -143,10 +143,10 @@ class FL(discrete.DiscreteEnv):
         self.s = s
         self.lastaction = a
         if self.desc[int(s / self.ncol)][s % self.ncol] in b'H':
-            return s, -10, d
+            return s, -.2, d, None
         if self.desc[int(s / self.ncol)][s % self.ncol] in b'G':
-            return s, 10, d
-        return s, -1, d
+            return s, 1., d, None
+        return s, -.01, d, None
 
     def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
